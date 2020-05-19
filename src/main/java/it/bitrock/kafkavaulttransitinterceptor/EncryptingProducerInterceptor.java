@@ -8,6 +8,7 @@ import java.util.Map;
 
 public class EncryptingProducerInterceptor implements ProducerInterceptor {
     public ProducerRecord onSend(ProducerRecord producerRecord) {
+        // encrypt and return ciphertext data
         return null;
     }
 

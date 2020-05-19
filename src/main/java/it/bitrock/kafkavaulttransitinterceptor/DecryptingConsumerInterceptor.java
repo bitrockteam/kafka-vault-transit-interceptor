@@ -7,6 +7,7 @@ import java.util.Map;
 
 public class DecryptingConsumerInterceptor implements ConsumerInterceptor {
     public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
+        // decrypt and return plaintext data
         return null;
     }
 

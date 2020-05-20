@@ -18,7 +18,7 @@ class VaultFactory {
     private static void initialize() {
         try {
             VaultConfig config = new VaultConfig().sslConfig(new SslConfig().build()).build();
-            Vault vault = new Vault(config);
+            vault = new Vault(config);
         } catch (VaultException e) {
             throw new RuntimeException("Failed to initialize Vault");
         }

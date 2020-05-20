@@ -26,7 +26,7 @@ public class EncryptingProducerInterceptor implements ProducerInterceptor {
                 String encryptedData = vaultResponse.getData().get("ciphertext");
                 Headers headers = producerRecord.headers();
                 headers.add("x-vault-encryption-key", key.getBytes());
-                ProducerRecord<Object, String> encryptedProducerRecord = new ProducerRecord<Object, String>(
+                return new ProducerRecord<Object, String>(
                         producerRecord.topic(),
                         producerRecord.partition(),
                         producerRecord.timestamp(),
@@ -34,14 +34,12 @@ public class EncryptingProducerInterceptor implements ProducerInterceptor {
                         encryptedData,
                         headers
                 );
-                return encryptedProducerRecord;
             } else {
                 throw new RuntimeException("Encryption failed");
-                return null;
             }
         } catch (VaultException e) {
             e.printStackTrace();
-            return null
+            return null;
         }
     }
 

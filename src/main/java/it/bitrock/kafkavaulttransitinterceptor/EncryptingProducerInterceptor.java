@@ -7,7 +7,9 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
 
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 
@@ -20,14 +22,16 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   String mount;
   String key;
   String encryptPath;
+  Serializer<V> valueSerializer;
 
   public ProducerRecord onSend(ProducerRecord<K, V> record) {
     if (record.value() == null) return record;
     LogicalResponse vaultResponse = null;
     try {
+      String base64value = Base64.getEncoder().encodeToString(valueSerializer.serialize(record.topic(), record.value()));
       vaultResponse = vault.logical().write(
         encryptPath,
-        Collections.<String, Object>singletonMap("plaintext", record.value()));
+        Collections.<String, Object>singletonMap("plaintext", base64value));
       if (vaultResponse.getRestResponse().getStatus() == 200) {
         String encryptedData = vaultResponse.getData().get("ciphertext");
         Headers headers = record.headers();
@@ -41,6 +45,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
           headers
         );
       } else {
+        LOGGER.error(String.format("Encryption failed with status code: %d", vaultResponse.getRestResponse().getStatus()));
         throw new RuntimeException("Encryption failed");
       }
     } catch (VaultException e) {
@@ -58,7 +63,18 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   }
 
   public void configure(Map<String, ?> configs) {
+    LOGGER.info(configs.toString());
+    System.out.println(configs.toString());
     configuration = new TransitConfiguration(configs);
+    try {
+      valueSerializer = (Serializer) Class.forName(configuration.getStringOrDefault("value.serializer", "null")).newInstance();
+    } catch (InstantiationException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+    }
     vault = new VaultFactory(configuration).vault;
     mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
     key = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);

@@ -17,6 +17,8 @@
 
     <kafka.version>2.5.0</kafka.version>
 
+    <junit-jupiter.version>5.5.2</junit-jupiter.version>
+
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
     <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
   </properties>
@@ -32,6 +34,18 @@
       <groupId>com.bettercloud</groupId>
       <artifactId>vault-java-driver</artifactId>
       <version>5.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.30</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>

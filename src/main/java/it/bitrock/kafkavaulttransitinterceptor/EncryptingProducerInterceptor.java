@@ -35,7 +35,6 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
         encryptPath,
         Collections.<String, Object>singletonMap("plaintext", base64value));
       if (vaultResponse.getRestResponse().getStatus() == 200) {
-        LOGGER.info("status code 200");
         String encryptedData = vaultResponse.getData().get("ciphertext");
         Headers headers = record.headers();
         headers.add("x-vault-encryption-key", encryptionKey.getBytes());
@@ -59,7 +58,6 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
 
   private String extractKeyOrElse(K key, String defaultKey) {
      if(key instanceof String) {
-       LOGGER.info(String.format("Key: %s", key));
        return (String) key;
     } else return defaultKey;
   }

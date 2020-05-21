@@ -1,8 +1,8 @@
 # Kafka Interceptor: Vault Transit
 
-Kafka [Consumer](https://kafka.apache.org/0100/javadoc/org/apache/kafka/clients/consumer/ConsumerInterceptor.html)
+Kafka [Consumer](https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/consumer/ConsumerInterceptor.html)
 and
-[Producer](https://kafka.apache.org/0100/javadoc/org/apache/kafka/clients/producer/ProducerInterceptor.html)
+[Producer](https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/ProducerInterceptor.html)
 Interceptor to encrypt and decript data in transit using vault.
 
 This interceptors could be added to Kafka Connectors via configuration and to other off-the-shelf

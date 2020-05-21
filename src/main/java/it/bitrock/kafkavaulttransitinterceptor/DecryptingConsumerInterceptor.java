@@ -29,7 +29,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
 
   public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {
     if (records.isEmpty()) return records;
-
+    LOGGER.info("Intercepting records");
     Map<TopicPartition, List<ConsumerRecord<K, V>>> decryptedRecordsMap = new HashMap<>();
     for (TopicPartition partition : records.partitions()) {
       List<ConsumerRecord<K, V>> decryptedRecordsPartition =
@@ -57,11 +57,10 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
       response = vault.logical().write(String.format("%s/decrypt/%s", mount, key),
         Collections.singletonMap("batch_input", batch));
       if (response.getRestResponse().getStatus() == 200) {
-        List<String> plainTexts = response.getDataObject().get("batch_results").asArray().values()
+        List<byte []> plainTexts = response.getDataObject().get("batch_results").asArray().values()
           .stream().map(it ->
-            new String(Base64.getDecoder().decode(it.asObject().get("plaintext").asString())))
+            Base64.getDecoder().decode(it.asObject().get("plaintext").asString()))
           .collect(Collectors.toList());
-
         AtomicInteger index = new AtomicInteger(0);
         return records.stream()
           .map(record ->
@@ -74,7 +73,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
               record.serializedKeySize(),
               record.serializedValueSize(),
               record.key(),
-              valueDeserializer.deserialize(record.topic(), plainTexts.get(index.getAndIncrement()).getBytes()),
+              valueDeserializer.deserialize(record.topic(), plainTexts.get(index.getAndIncrement())),
               record.headers(),
               record.leaderEpoch()))
           .collect(Collectors.toList());
@@ -100,7 +99,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     LOGGER.info(configs.toString());
     configuration = new TransitConfiguration(configs);
     try {
-      valueDeserializer = (Deserializer<V>) Class.forName(configuration.getStringOrDefault("value.deserializer", "null")).newInstance();
+      valueDeserializer = (Deserializer<V>) Class.forName(configuration.getStringOrDefault("interceptor.value.deserializer", "null")).newInstance();
     } catch (InstantiationException e) {
       e.printStackTrace();
     } catch (IllegalAccessException e) {

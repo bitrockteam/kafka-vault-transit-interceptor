@@ -1,9 +1,10 @@
 package it.bitrock.kafkavaulttransitinterceptor;
 
-import java.util.AbstractList;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.AbstractList;
+import java.util.Map;
 
 /**
  * Tracing Configuration wraps properties provided by a Kafka Client and enable access to
@@ -21,19 +22,6 @@ public class TransitConfiguration {
 
   TransitConfiguration(Map<String, ?> configs) {
     this.configs = configs;
-  }
-
-  String getStringList(String configKey) {
-    final String value;
-    final Object valueObject = configs.get(configKey);
-    if (valueObject instanceof AbstractList) {
-      AbstractList valueList = (AbstractList) valueObject;
-      value = String.join(",", valueList);
-    } else {
-      LOGGER.warn("{} of type ArrayList is not found in properties", configKey);
-      value = null;
-    }
-    return value;
   }
 
   /**

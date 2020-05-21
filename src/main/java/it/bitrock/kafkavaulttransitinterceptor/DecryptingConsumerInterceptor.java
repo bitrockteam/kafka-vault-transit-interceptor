@@ -29,7 +29,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
 
   public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {
     if (records.isEmpty()) return records;
-    LOGGER.info("Intercepting records");
+
     Map<TopicPartition, List<ConsumerRecord<K, V>>> decryptedRecordsMap = new HashMap<>();
     for (TopicPartition partition : records.partitions()) {
       List<ConsumerRecord<K, V>> decryptedRecordsPartition =
@@ -57,7 +57,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
       response = vault.logical().write(String.format("%s/decrypt/%s", mount, key),
         Collections.singletonMap("batch_input", batch));
       if (response.getRestResponse().getStatus() == 200) {
-        List<byte []> plainTexts = response.getDataObject().get("batch_results").asArray().values()
+        List<byte[]> plainTexts = response.getDataObject().get("batch_results").asArray().values()
           .stream().map(it ->
             Base64.getDecoder().decode(it.asObject().get("plaintext").asString()))
           .collect(Collectors.toList());
@@ -96,16 +96,11 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   }
 
   public void configure(Map<String, ?> configs) {
-    LOGGER.info(configs.toString());
     configuration = new TransitConfiguration(configs);
     try {
-      valueDeserializer = (Deserializer<V>) Class.forName(configuration.getStringOrDefault("interceptor.value.deserializer", "null")).newInstance();
-    } catch (InstantiationException e) {
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
-      e.printStackTrace();
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
+      valueDeserializer = (Deserializer<V>) Class.forName(configuration.getString("interceptor.value.deserializer")).newInstance();
+    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+      LOGGER.error("Failed to create instance of interceptor.value.deserializer", e);
     }
     vault = new VaultFactory(configuration).vault;
     mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);

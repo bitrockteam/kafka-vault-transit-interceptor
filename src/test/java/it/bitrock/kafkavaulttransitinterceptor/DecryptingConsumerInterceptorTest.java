@@ -13,14 +13,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 
-public class EncryptingProducerInterceptorTest {
+public class DecryptingConsumerInterceptorTest {
 
-  private final String topic = "topic-user-key";
-  private final ProducerRecord<String, Long> record = new ProducerRecord<>(topic, UUID.randomUUID().toString(), 123456L);
+  private final String topic = "topic-99";
+  private final ProducerRecord<String, Long> record = new ProducerRecord<>(topic, 123456L);
 
   @Test
   public void shouldNotCrash() {
@@ -44,5 +43,49 @@ public class EncryptingProducerInterceptorTest {
       producer.flush();
       producer.close();
     }
+
+    final Properties props = new Properties();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+      "localhost:9092");
+    props.put(ConsumerConfig.GROUP_ID_CONFIG,
+      String.format("KafkaExampleConsumer-%s", topic));
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+      StringDeserializer.class.getName());
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+      StringDeserializer.class.getName());
+    props.put("interceptor.value.deserializer",
+      LongDeserializer.class.getName());
+    props.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG,
+      "it.bitrock.kafkavaulttransitinterceptor.DecryptingConsumerInterceptor");
+
+    // Create the consumer using props.
+    final Consumer<String, Long> consumer =
+      new KafkaConsumer<>(props);
+
+    // Subscribe to the topic.
+    consumer.subscribe(Collections.singletonList(topic));
+    final int giveUp = 100;
+    int noRecordsCount = 0;
+
+    while (true) {
+      final ConsumerRecords<String, Long> consumerRecords =
+        consumer.poll(1000);
+
+      if (consumerRecords.count() == 0) {
+        noRecordsCount++;
+        if (noRecordsCount > giveUp) break;
+        else continue;
+      }
+
+      consumerRecords.forEach(record -> {
+        System.out.printf("Consumer Record:(%s, %s, %d, %d)\n",
+          record.key(), record.value(),
+          record.partition(), record.offset());
+      });
+
+      consumer.commitAsync();
+    }
+    consumer.close();
+    System.out.println("DONE");
   }
 }

@@ -7,12 +7,10 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -20,10 +18,8 @@ import java.util.concurrent.ExecutionException;
 
 public class EncryptingProducerInterceptorTest {
 
-  private final ProducerRecord<String, String> record = new ProducerRecord<>("topic", "value");
-
-
-
+  private final String topic = "topic-99";
+  private final ProducerRecord<String, Long> record = new ProducerRecord<>(topic, 123456L);
 
   @Test
   public void shouldNotCrash() {
@@ -31,13 +27,14 @@ public class EncryptingProducerInterceptorTest {
     properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+    properties.put("interceptor.value.serializer", "org.apache.kafka.common.serialization.LongSerializer");
     //Add ProducerInterceptor like this
     properties.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
       "it.bitrock.kafkavaulttransitinterceptor.EncryptingProducerInterceptor");
-    KafkaProducer producer = new KafkaProducer<String, String>(properties);
+    KafkaProducer producer = new KafkaProducer<String, Long>(properties);
 
     try {
-       producer.send(record).get();
+      producer.send(record).get();
     } catch (InterruptedException e) {
       e.printStackTrace();
     } catch (ExecutionException e) {
@@ -47,33 +44,34 @@ public class EncryptingProducerInterceptorTest {
       producer.close();
     }
 
-
-
     final Properties props = new Properties();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
       "localhost:9092");
     props.put(ConsumerConfig.GROUP_ID_CONFIG,
-      "KafkaExampleConsumer");
+      String.format("KafkaExampleConsumer-%s", topic));
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
       StringDeserializer.class.getName());
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
       StringDeserializer.class.getName());
+    props.put("interceptor.value.deserializer",
+      LongDeserializer.class.getName());
     props.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG,
       "it.bitrock.kafkavaulttransitinterceptor.DecryptingConsumerInterceptor");
 
     // Create the consumer using props.
-    final Consumer<String, String> consumer =
+    final Consumer<String, Long> consumer =
       new KafkaConsumer<>(props);
 
     // Subscribe to the topic.
-    consumer.subscribe(Collections.singletonList("topic"));
-    final int giveUp = 100;   int noRecordsCount = 0;
+    consumer.subscribe(Collections.singletonList(topic));
+    final int giveUp = 100;
+    int noRecordsCount = 0;
 
     while (true) {
-      final ConsumerRecords<String, String> consumerRecords =
+      final ConsumerRecords<String, Long> consumerRecords =
         consumer.poll(1000);
 
-      if (consumerRecords.count()==0) {
+      if (consumerRecords.count() == 0) {
         noRecordsCount++;
         if (noRecordsCount > giveUp) break;
         else continue;

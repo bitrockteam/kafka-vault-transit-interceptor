@@ -67,7 +67,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
     System.out.println(configs.toString());
     configuration = new TransitConfiguration(configs);
     try {
-      valueSerializer = (Serializer) Class.forName(configuration.getStringOrDefault("value.serializer", "null")).newInstance();
+      valueSerializer = (Serializer) Class.forName(configuration.getStringOrDefault("interceptor.value.serializer", "null")).newInstance();
     } catch (InstantiationException e) {
       e.printStackTrace();
     } catch (IllegalAccessException e) {

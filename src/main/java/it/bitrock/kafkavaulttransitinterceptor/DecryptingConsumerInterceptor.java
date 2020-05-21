@@ -1,28 +1,115 @@
 package it.bitrock.kafkavaulttransitinterceptor;
 
 import com.bettercloud.vault.Vault;
+import com.bettercloud.vault.VaultException;
+import com.bettercloud.vault.json.JsonArray;
+import com.bettercloud.vault.json.JsonObject;
+import com.bettercloud.vault.response.LogicalResponse;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.Deserializer;
 
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-public class DecryptingConsumerInterceptor implements ConsumerInterceptor {
-    private Vault vault = VaultFactory.getInstance();
+import static it.bitrock.kafkavaulttransitinterceptor.TransitConfiguration.*;
+import static java.util.stream.Collectors.groupingBy;
 
-    public ConsumerRecords onConsume(ConsumerRecords consumerRecords) {
-        // decrypt and return plaintext data
-        return null;
+public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<K, V> {
+
+  TransitConfiguration configuration;
+  Vault vault;
+  String mount;
+  String key;
+  Deserializer<V> valueDeserializer;
+
+  public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {
+    if (records.isEmpty()) return records;
+
+    Map<TopicPartition, List<ConsumerRecord<K, V>>> decryptedRecordsMap = new HashMap<>();
+    for (TopicPartition partition : records.partitions()) {
+      List<ConsumerRecord<K, V>> decryptedRecordsPartition =
+        records.records(partition).stream()
+          .collect(groupingBy(record -> new String(record.headers().headers("x-vault-encryption-key").iterator().next().value()))).values()
+          .stream().flatMap(recordsPerKey -> processBulkDecrypt(recordsPerKey).stream())
+          .collect(Collectors.toList());
+
+      decryptedRecordsMap.put(partition, decryptedRecordsPartition);
     }
+    ;
 
-    public void close() {
+    return new ConsumerRecords<K, V>(decryptedRecordsMap);
+  }
 
+
+  private List<ConsumerRecord<K, V>> processBulkDecrypt(List<ConsumerRecord<K, V>> records) {
+    JsonArray batch = new JsonArray();
+    String key = new String(records.get(0).headers().headers("x-vault-encryption-key").iterator().next().value());
+    for (Object text : records.stream().map(ConsumerRecord::value).toArray()) {
+      batch.add(new JsonObject().add("ciphertext", (String) text));
     }
+    LogicalResponse response = null;
+    try {
+      response = vault.logical().write(String.format("%s/decrypt/%s", mount, key),
+        Collections.singletonMap("batch_input", batch));
+      if (response.getRestResponse().getStatus() == 200) {
+        List<String> plainTexts = response.getDataObject().get("batch_results").asArray().values()
+          .stream().map(it ->
+            new String(Base64.getDecoder().decode(it.asObject().get("plaintext").asString())))
+          .collect(Collectors.toList());
 
-    public void onCommit(Map map) {
-
+        AtomicInteger index = new AtomicInteger(0);
+        return records.stream()
+          .map(record ->
+            new ConsumerRecord<K, V>(record.topic(),
+              record.partition(),
+              record.offset(),
+              record.timestamp(),
+              record.timestampType(),
+              record.checksum(),
+              record.serializedKeySize(),
+              record.serializedValueSize(),
+              record.key(),
+              valueDeserializer.deserialize(record.topic(), plainTexts.get(index.getAndIncrement()).getBytes()),
+              record.headers(),
+              record.leaderEpoch()))
+          .collect(Collectors.toList());
+      } else {
+        LOGGER.error(String.format("Decryption failed with status code: %d", response.getRestResponse().getStatus()));
+        throw new RuntimeException("Decryption failed");
+      }
+    } catch (VaultException e) {
+      LOGGER.error("Failed to decrypt bulk records Vault", e);
+      throw new RuntimeException("Failed to decrypt bulk records Vault");
     }
+  }
 
-    public void configure(Map<String, ?> map) {
+  public void close() {
+    // Do nothing
+  }
 
+  public void onCommit(Map<TopicPartition, OffsetAndMetadata> map) {
+    // Do nothing
+  }
+
+  public void configure(Map<String, ?> configs) {
+    LOGGER.info(configs.toString());
+    configuration = new TransitConfiguration(configs);
+    try {
+      valueDeserializer = (Deserializer<V>) Class.forName(configuration.getStringOrDefault("value.deserializer", "null")).newInstance();
+    } catch (InstantiationException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
     }
+    vault = new VaultFactory(configuration).vault;
+    mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
+    key = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
+  }
 }

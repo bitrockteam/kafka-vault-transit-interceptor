@@ -7,6 +7,7 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.protocol.types.Field;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Base64;
@@ -20,22 +21,24 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   TransitConfiguration configuration;
   Vault vault;
   String mount;
-  String key;
-  String encryptPath;
+  String defaultKey;
   Serializer<V> valueSerializer;
 
   public ProducerRecord onSend(ProducerRecord<K, V> record) {
     if (record.value() == null) return record;
     LogicalResponse vaultResponse = null;
+    String encryptionKey = extractKeyOrElse(record.key(), defaultKey);
+    String encryptPath = String.format("%s/encrypt/%s", mount, encryptionKey);
     try {
       String base64value = Base64.getEncoder().encodeToString(valueSerializer.serialize(record.topic(), record.value()));
       vaultResponse = vault.logical().write(
         encryptPath,
         Collections.<String, Object>singletonMap("plaintext", base64value));
       if (vaultResponse.getRestResponse().getStatus() == 200) {
+        LOGGER.info("status code 200");
         String encryptedData = vaultResponse.getData().get("ciphertext");
         Headers headers = record.headers();
-        headers.add("x-vault-encryption-key", key.getBytes());
+        headers.add("x-vault-encryption-key", encryptionKey.getBytes());
         return new ProducerRecord<K, String>(
           record.topic(),
           record.partition(),
@@ -49,9 +52,16 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
         throw new RuntimeException("Encryption failed");
       }
     } catch (VaultException e) {
-      e.printStackTrace();
-      return null;
+      LOGGER.error("Failed to encrypt records Vault", e);
+      throw new RuntimeException("Failed to encrypt records Vault");
     }
+  }
+
+  private String extractKeyOrElse(K key, String defaultKey) {
+     if(key instanceof String) {
+       LOGGER.info(String.format("Key: %s", key));
+       return (String) key;
+    } else return defaultKey;
   }
 
   public void onAcknowledgement(RecordMetadata recordMetadata, Exception exception) {
@@ -63,21 +73,15 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   }
 
   public void configure(Map<String, ?> configs) {
-    LOGGER.info(configs.toString());
-    System.out.println(configs.toString());
     configuration = new TransitConfiguration(configs);
     try {
-      valueSerializer = (Serializer) Class.forName(configuration.getStringOrDefault("interceptor.value.serializer", "null")).newInstance();
-    } catch (InstantiationException e) {
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
-      e.printStackTrace();
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
+      valueSerializer = (Serializer) Class.forName(configuration.getString("interceptor.value.serializer")).newInstance();
+    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+      LOGGER.error("Failed to create instance of interceptor.value.serializer", e);
     }
     vault = new VaultFactory(configuration).vault;
     mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
-    key = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
-    encryptPath = String.format("%s/encrypt/%s", mount, key);
+    defaultKey = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
+
   }
 }

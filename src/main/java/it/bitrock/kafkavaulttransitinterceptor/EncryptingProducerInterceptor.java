@@ -30,7 +30,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
     String encryptionKey = extractKeyOrElse(record.key(), defaultKey);
     String encryptPath = String.format("%s/encrypt/%s", mount, encryptionKey);
     try {
-      String base64value = Base64.getEncoder().encodeToString(valueSerializer.serialize(record.topic(), record.value()));
+      String base64value = getBase64value(record);
       vaultResponse = vault.logical().write(
         encryptPath,
         Collections.<String, Object>singletonMap("plaintext", base64value));
@@ -54,6 +54,10 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
       LOGGER.error("Failed to encrypt records Vault", e);
       throw new RuntimeException("Failed to encrypt records Vault");
     }
+  }
+
+  private String getBase64value(ProducerRecord<K, V> record) {
+    return Base64.getEncoder().encodeToString(valueSerializer.serialize(record.topic(), record.value()));
   }
 
   private String extractKeyOrElse(K key, String defaultKey) {
@@ -80,6 +84,5 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
     vault = new VaultFactory(configuration).vault;
     mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
     defaultKey = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
-
   }
 }

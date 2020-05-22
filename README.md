@@ -8,13 +8,13 @@ Interceptor to encrypt and decript data in transit using vault.
 This interceptors could be added to Kafka Connectors via configuration and to other off-the-shelf
 components like Kafka REST Proxy, KSQL and so on.
 
-## Installation
-
-### Producer Interceptor
-
-Producer Interceptor allows to ...
-
-#### Kafka Clients
+## Build
+..
+## Test
+..
+## Setup
+..
+### Producer Kafka Clients
 
 Add Interceptor to Producer Configuration:
 
@@ -23,11 +23,7 @@ Add Interceptor to Producer Configuration:
     //or
     producerConfig.put("interceptor.classes", "it.bitrock.kafkavaulttransitinterceptor.EncryptingProducerInterceptor");
 ```
-### Consumer Interceptor
-
-Consumer Interceptor allows to ...
-
-#### Kafka Clients
+### Consumer Kafka Clients
 
 ```java
     consumerConfig.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, Collections.singletonList(DecryptingConsumerInterceptor.class));

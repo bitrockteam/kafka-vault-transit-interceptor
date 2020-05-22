@@ -4,6 +4,7 @@ import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultException;
 import com.bettercloud.vault.json.JsonArray;
 import com.bettercloud.vault.json.JsonObject;
+import com.bettercloud.vault.json.JsonValue;
 import com.bettercloud.vault.response.LogicalResponse;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -34,7 +35,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     for (TopicPartition partition : records.partitions()) {
       List<ConsumerRecord<K, V>> decryptedRecordsPartition =
         records.records(partition).stream()
-          .collect(groupingBy(record -> new String(record.headers().headers("x-vault-encryption-key").iterator().next().value()))).values()
+          .collect(groupingBy(record -> getEncryptionKey((ConsumerRecord<K, V>) record))).values()
           .stream().flatMap(recordsPerKey -> processBulkDecrypt(recordsPerKey).stream())
           .collect(Collectors.toList());
 
@@ -45,10 +46,9 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     return new ConsumerRecords<K, V>(decryptedRecordsMap);
   }
 
-
   private List<ConsumerRecord<K, V>> processBulkDecrypt(List<ConsumerRecord<K, V>> records) {
     JsonArray batch = new JsonArray();
-    String key = new String(records.get(0).headers().headers("x-vault-encryption-key").iterator().next().value());
+    String key = getEncryptionKey(records.get(0));
     for (Object text : records.stream().map(ConsumerRecord::value).toArray()) {
       batch.add(new JsonObject().add("ciphertext", (String) text));
     }
@@ -58,8 +58,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
         Collections.singletonMap("batch_input", batch));
       if (response.getRestResponse().getStatus() == 200) {
         List<byte[]> plainTexts = response.getDataObject().get("batch_results").asArray().values()
-          .stream().map(it ->
-            Base64.getDecoder().decode(it.asObject().get("plaintext").asString()))
+          .stream().map(this::getPlaintextData)
           .collect(Collectors.toList());
         AtomicInteger index = new AtomicInteger(0);
         return records.stream()
@@ -106,4 +105,13 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
     key = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
   }
+
+  private String getEncryptionKey(ConsumerRecord<K, V> record) {
+    return new String(record.headers().headers("x-vault-encryption-key").iterator().next().value());
+  }
+
+  private byte[] getPlaintextData(JsonValue it) {
+    return Base64.getDecoder().decode(it.asObject().get("plaintext").asString());
+  }
+
 }

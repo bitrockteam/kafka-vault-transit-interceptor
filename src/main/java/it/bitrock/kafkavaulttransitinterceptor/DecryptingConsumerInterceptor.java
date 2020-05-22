@@ -57,7 +57,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
       response = vault.logical().write(String.format("%s/decrypt/%s", mount, key),
         Collections.singletonMap("batch_input", batch));
       if (response.getRestResponse().getStatus() == 200) {
-        List<byte[]> plainTexts = response.getDataObject().get("batch_results").asArray().values()
+        List<byte[]> plainTexts = getBatchResults(response)
           .stream().map(this::getPlaintextData)
           .collect(Collectors.toList());
         AtomicInteger index = new AtomicInteger(0);
@@ -114,4 +114,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     return Base64.getDecoder().decode(it.asObject().get("plaintext").asString());
   }
 
+  private List<JsonValue> getBatchResults(LogicalResponse response) {
+    return response.getDataObject().get("batch_results").asArray().values();
+  }
 }

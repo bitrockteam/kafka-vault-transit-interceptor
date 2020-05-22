@@ -47,7 +47,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
           headers
         );
       } else {
-        LOGGER.error(String.format("Encryption failed with status code: %d", vaultResponse.getRestResponse().getStatus()));
+        LOGGER.error(String.format("Encryption failed with status code: %d body: %s", vaultResponse.getRestResponse().getStatus(), new String(vaultResponse.getRestResponse().getBody())));
         throw new RuntimeException("Encryption failed");
       }
     } catch (VaultException e) {

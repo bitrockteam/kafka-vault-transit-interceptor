@@ -10,13 +10,13 @@ This interceptors could be added to Kafka Connectors via configuration and to ot
 ## Build
 
 ```bash
-maven package
+mvn package
 ```
 
 ## Test
 
 ```bash
-maven test
+mvn test
 ```
 
 ## Setup

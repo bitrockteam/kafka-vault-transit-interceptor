@@ -2,11 +2,14 @@
 
 set -ex
 
+export VAULT_ADDR=http://127.0.0.1:8200
+export VAULT_TOKEN=myroot
+
 echo "Docker Compose Up"
 docker-compose -f docker/docker-compose.yaml up -d
 
 echo "Enable Vault Transit"
-docker exec -e VAULT_TOKEN=myroot docker_vault_1 vault secrets enable transit || true
+docker exec -e VAULT_TOKEN="${VAULT_TOKEN}" docker_vault_1 vault secrets enable transit || true
 
 SIZE_IN_BYTES=128
 NUM_RECORDS=50000

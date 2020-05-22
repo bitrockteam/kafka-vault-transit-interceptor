@@ -77,7 +77,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
               record.leaderEpoch()))
           .collect(Collectors.toList());
       } else {
-        LOGGER.error(String.format("Decryption failed with status code: %d", response.getRestResponse().getStatus()));
+        LOGGER.error(String.format("Decryption failed with status code: %d body: %s", response.getRestResponse().getStatus(), new String(response.getRestResponse().getBody())));
         throw new RuntimeException("Decryption failed");
       }
     } catch (VaultException e) {

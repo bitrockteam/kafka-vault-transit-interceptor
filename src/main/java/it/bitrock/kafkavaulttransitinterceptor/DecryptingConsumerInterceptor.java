@@ -50,7 +50,11 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     JsonArray batch = new JsonArray();
     String key = getEncryptionKey(records.get(0));
     for (Object text : records.stream().map(ConsumerRecord::value).toArray()) {
-      batch.add(new JsonObject().add("ciphertext", (String) text));
+      if (text instanceof byte[]) {
+        batch.add(new JsonObject().add("ciphertext", new String((byte[]) text)));
+      } else {
+        batch.add(new JsonObject().add("ciphertext", (String) text));
+      }
     }
     LogicalResponse response = null;
     try {

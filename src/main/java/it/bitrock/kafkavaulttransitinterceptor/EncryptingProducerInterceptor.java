@@ -2,12 +2,12 @@ package it.bitrock.kafkavaulttransitinterceptor;
 
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultException;
+import com.bettercloud.vault.api.Logical;
 import com.bettercloud.vault.response.LogicalResponse;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.protocol.types.Field;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Base64;
@@ -38,14 +38,27 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
         String encryptedData = vaultResponse.getData().get("ciphertext");
         Headers headers = record.headers();
         headers.add("x-vault-encryption-key", encryptionKey.getBytes());
-        return new ProducerRecord<K, String>(
-          record.topic(),
-          record.partition(),
-          record.timestamp(),
-          record.key(),
-          encryptedData,
-          headers
-        );
+        if (record.value() instanceof byte[]) {
+          return new ProducerRecord<K, byte[]>(
+            record.topic(),
+            record.partition(),
+            record.timestamp(),
+            record.key(),
+            encryptedData.getBytes(),
+            headers
+          );
+        }
+        else {
+          return new ProducerRecord<K, String>(
+            record.topic(),
+            record.partition(),
+            record.timestamp(),
+            record.key(),
+            encryptedData,
+            headers
+          );
+        }
+
       } else {
         LOGGER.error(String.format("Encryption failed with status code: %d body: %s", vaultResponse.getRestResponse().getStatus(), new String(vaultResponse.getRestResponse().getBody())));
         throw new RuntimeException("Encryption failed");

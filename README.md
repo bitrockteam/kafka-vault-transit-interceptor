@@ -3,7 +3,7 @@
 Apache Kafka [Consumer](https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/consumer/ConsumerInterceptor.html)
 and
 [Producer](https://kafka.apache.org/25/javadoc/org/apache/kafka/clients/producer/ProducerInterceptor.html)
-Interceptor to encrypt and decrypt in-transit data using HashiCorp Vault Transit secrets engine.
+Interceptor to encrypt and decrypt in-transit data using HashiCorp Vault [Transit secrets engine](https://www.vaultproject.io/docs/secrets/transit).
 
 This interceptors could be added to Kafka Connectors via configuration and to other off-the-shelf components like Kafka REST Proxy, KSQL and so on.
 

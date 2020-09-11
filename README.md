@@ -46,3 +46,20 @@ properties.put("interceptor.value.deserializer", "...");
 ```
 
 `interceptor.value.deserializer` must be configured according to the kind of value you want to write in Kafka, which you would have usually put in `value.deserializer`.
+
+### Changelog
+
+## 0.2.0
+
+Encryption is now done on the client side and only the keys are managed through Vault.
+
+Valure serializer/deserializer require a change in the default setting:
+
+- in the Producer:
+  - `value.serializer` to `org.apache.kafka.common.serialization.ByteArraySerializer`
+- in the Consumer:
+  - `value.deserializer` to `org.apache.kafka.common.deserialization.ByteArrayDeserializer`
+
+## 0.1.0
+
+Initial release encryption and keys are managed by Vault Transit Engine.

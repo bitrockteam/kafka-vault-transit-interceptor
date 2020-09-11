@@ -1,14 +1,10 @@
 package it.bitrock.kafkavaulttransitinterceptor.util;
 
-import com.bettercloud.vault.SslConfig;
-import com.bettercloud.vault.Vault;
-import com.bettercloud.vault.VaultConfig;
-import com.bettercloud.vault.VaultException;
-import com.bettercloud.vault.json.Json;
-import com.bettercloud.vault.json.JsonObject;
 import com.github.dockerjava.api.model.Capability;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
@@ -25,7 +21,7 @@ public class VaultContainer extends GenericContainer<VaultContainer> implements 
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VaultContainer.class);
 
-  public static final String DEFAULT_IMAGE_AND_TAG = "vault:1.4.2";
+  public static final String DEFAULT_IMAGE_AND_TAG = "vault:1.5.3";
 
   public static String rootToken;
   private String unsealKey;
@@ -59,9 +55,9 @@ public class VaultContainer extends GenericContainer<VaultContainer> implements 
     // Initialize the Vault server
     final Container.ExecResult initResult = runCommand("vault", "operator", "init", "-key-shares=1", "-key-threshold=1", "-format=json");
     final String stdout = initResult.getStdout().replaceAll("\\r?\\n", "");
-    JsonObject initJson = Json.parse(stdout).asObject();
-    this.unsealKey = initJson.get("unseal_keys_b64").asArray().get(0).asString();
-    rootToken = initJson.get("root_token").asString();
+    JSONObject initJson = new JSONObject(stdout);
+    this.unsealKey = initJson.getJSONArray("unseal_keys_b64").get(0).toString();
+    rootToken = initJson.get("root_token").toString();
 
     System.out.println("Root token: " + rootToken);
 
@@ -74,67 +70,6 @@ public class VaultContainer extends GenericContainer<VaultContainer> implements 
     runCommand("vault", "login", rootToken);
 
     runCommand("vault", "secrets", "enable", "transit");
-  }
-
-
-  public Vault getVault(final VaultConfig config, final Integer maxRetries, final Integer retryMillis) {
-    Vault vault = new Vault(config);
-    if (maxRetries != null && retryMillis != null) {
-      vault = vault.withRetries(maxRetries, retryMillis);
-    } else if (maxRetries != null) {
-      vault = vault.withRetries(maxRetries, RETRY_MILLIS);
-    } else if (retryMillis != null) {
-      vault = vault.withRetries(MAX_RETRIES, retryMillis);
-    }
-    return vault;
-  }
-
-  public Vault getVault() throws VaultException {
-    final VaultConfig config =
-      new VaultConfig()
-        .address(getAddress())
-        .openTimeout(5)
-        .readTimeout(30)
-        .sslConfig(new SslConfig().build())
-        .build();
-    return getVault(config, MAX_RETRIES, RETRY_MILLIS);
-  }
-
-  public VaultConfig getVaultConfig() throws VaultException {
-    return new VaultConfig()
-      .address(getAddress())
-      .openTimeout(5)
-      .readTimeout(30)
-      .sslConfig(new SslConfig().build())
-      .build();
-  }
-
-  public Vault getVault(final String token) throws VaultException {
-    final VaultConfig config =
-      new VaultConfig()
-        .address(getAddress())
-        .token(token)
-        .openTimeout(5)
-        .readTimeout(30)
-        .sslConfig(new SslConfig().build())
-        .build();
-    return new Vault(config).withRetries(MAX_RETRIES, RETRY_MILLIS);
-  }
-
-  public Vault getRootVaultWithCustomVaultConfig(VaultConfig vaultConfig) throws VaultException {
-    final VaultConfig config =
-      vaultConfig
-        .address(getAddress())
-        .token(rootToken)
-        .openTimeout(5)
-        .readTimeout(30)
-        .sslConfig(new SslConfig().build())
-        .build();
-    return new Vault(config).withRetries(MAX_RETRIES, RETRY_MILLIS);
-  }
-
-  public Vault getRootVault() throws VaultException {
-    return getVault(rootToken).withRetries(MAX_RETRIES, RETRY_MILLIS);
   }
 
   public String getAddress() {

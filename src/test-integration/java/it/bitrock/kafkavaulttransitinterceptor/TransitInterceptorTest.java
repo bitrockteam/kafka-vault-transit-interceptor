@@ -25,7 +25,7 @@ public class TransitInterceptorTest {
   public static final VaultContainer container = new VaultContainer();
 
   @ClassRule
-  public static KafkaContainer kafka = new KafkaContainer("5.4.2");
+  public static KafkaContainer kafka = new KafkaContainer("5.5.1");
 
   @ClassRule
   public static final EnvironmentVariables environmentVariables = new EnvironmentVariables();

@@ -1,27 +1,29 @@
 package it.bitrock.kafkavaulttransitinterceptor;
 
-import com.bettercloud.vault.SslConfig;
-import com.bettercloud.vault.Vault;
-import com.bettercloud.vault.VaultConfig;
-import com.bettercloud.vault.VaultException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.vault.authentication.TokenAuthentication;
+import org.springframework.vault.client.VaultEndpoint;
+import org.springframework.vault.core.VaultTemplate;
+import org.springframework.vault.core.VaultTransitOperations;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import static it.bitrock.kafkavaulttransitinterceptor.TransitConfiguration.TRANSIT_MOUNT_CONFIG;
+import static it.bitrock.kafkavaulttransitinterceptor.TransitConfiguration.TRANSIT_MOUNT_DEFAULT;
 
 class VaultFactory {
   static final Logger LOGGER = LoggerFactory.getLogger(VaultFactory.class);
 
-  final Vault vault;
   final TransitConfiguration configuration;
+  VaultTemplate template;
+  VaultTransitOperations transit;
 
-
-  VaultFactory(TransitConfiguration configuration) {
+  VaultFactory(TransitConfiguration configuration) throws URISyntaxException {
     this.configuration = configuration;
-    try {
-      VaultConfig config = new VaultConfig().sslConfig(new SslConfig().build()).build();
-      this.vault = new Vault(config, 1);
-    } catch (VaultException e) {
-      LOGGER.error("Failed to initialize Vault", e);
-      throw new RuntimeException("Failed to initialize Vault");
-    }
+    this.template = new VaultTemplate(VaultEndpoint.from(new URI(System.getenv("VAULT_ADDR"))), new TokenAuthentication(System.getenv("VAULT_TOKEN")));
+    this.transit = template.opsForTransit(configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT));
   }
 }

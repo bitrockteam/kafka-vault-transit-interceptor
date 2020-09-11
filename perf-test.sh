@@ -11,7 +11,7 @@ docker-compose -f docker/docker-compose.yaml up -d
 echo "Enable Vault Transit"
 docker exec -e VAULT_TOKEN="${VAULT_TOKEN}" docker_vault_1 vault secrets enable transit || true
 
-SIZE_IN_BYTES=(10 100 1000 10000 100000) 
+SIZE_IN_BYTES=(10 100 500 1000 10000 100000)
 NUM_RECORDS=50000
 TEST_RUN=$((1 + RANDOM % 10))
 

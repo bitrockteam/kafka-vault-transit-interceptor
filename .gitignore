@@ -135,3 +135,10 @@ results
 .classpath
 .settings
 .vscode
+
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
+key.pem
+
+.DS_Store

@@ -2,6 +2,10 @@ provider "aws" {
   region = var.region
 }
 
+provider "null" {
+
+}
+
 data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
@@ -106,7 +110,7 @@ resource "aws_instance" "kafka" {
 
   provisioner "file" {
     source = pathexpand(var.base_folder_dir)
-    destination = "/home/ubuntu"
+    destination = "/home/ubuntu/"
   }
 
   provisioner "remote-exec" {
@@ -141,7 +145,7 @@ resource "aws_instance" "vault" {
 
   provisioner "file" {
     source = pathexpand(var.base_folder_dir)
-    destination = "/home/ubuntu"
+    destination = "/home/ubuntu/"
   }
 
   provisioner "remote-exec" {
@@ -176,7 +180,7 @@ resource "aws_instance" "test_runner" {
 
   provisioner "file" {
     source = pathexpand(var.base_folder_dir)
-    destination = "/home/ubuntu"
+    destination = "/home/ubuntu/"
   }
 
   provisioner "file" {
@@ -192,6 +196,14 @@ locals {
 resource "local_file" "private_key" {
   filename = "${path.root}/key.pem"
   content = tls_private_key.this.private_key_pem
+}
+
+resource "null_resource" "key_chown" {
+  provisioner "local-exec" {
+    command = "chmod 400 ${path.root}/key.pem"
+  }
+
+  depends_on = [local_file.private_key]
 }
 
 resource "aws_internet_gateway" "this" {

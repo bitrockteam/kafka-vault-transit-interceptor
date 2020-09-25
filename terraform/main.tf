@@ -105,7 +105,7 @@ resource "aws_instance" "kafka" {
   }
 
   provisioner "file" {
-    source = var.base_folder_dir
+    source = pathexpand(var.base_folder_dir)
     destination = "/home/ubuntu"
   }
 
@@ -140,7 +140,7 @@ resource "aws_instance" "vault" {
   }
 
   provisioner "file" {
-    source = var.base_folder_dir
+    source = pathexpand(var.base_folder_dir)
     destination = "/home/ubuntu"
   }
 
@@ -175,7 +175,7 @@ resource "aws_instance" "test_runner" {
   }
 
   provisioner "file" {
-    source = var.base_folder_dir
+    source = pathexpand(var.base_folder_dir)
     destination = "/home/ubuntu"
   }
 

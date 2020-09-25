@@ -20,5 +20,5 @@ variable "region" {
   default = "us-east-1"
 }
 variable "base_folder_dir" {
-  default = "/Users/sripamonti/Projects/Bitrock/kafka-vault-transit-interceptor"
+  default = "./.."
 }

@@ -41,11 +41,11 @@
       <artifactId>spring-vault-core</artifactId>
       <version>2.2.2.RELEASE</version>
     </dependency>
-    <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-crypto</artifactId>
-      <version>5.3.4.RELEASE</version>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>org.springframework.security</groupId>-->
+<!--      <artifactId>spring-security-crypto</artifactId>-->
+<!--      <version>5.3.4.RELEASE</version>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

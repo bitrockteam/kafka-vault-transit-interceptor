@@ -28,6 +28,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   String key;
   Deserializer<V> valueDeserializer;
   SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<String, byte[]>();
+  long lifeTimeMillis;
 
 
   public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> records) {
@@ -66,7 +67,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
         RawTransitKey vaultKey = transit.exportKey(keyName, TransitKeyType.ENCRYPTION_KEY);
         // decode the base64 encoded string
         decodedKey = Base64.getDecoder().decode(vaultKey.getKeys().get(String.valueOf(encryptionVersion)));
-        map.put(keyCacheKey, decodedKey, 5 * 60000);
+        map.put(keyCacheKey, decodedKey, lifeTimeMillis);
       } else {
         return null;
       }
@@ -80,7 +81,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
       record.offset(),
       record.timestamp(),
       record.timestampType(),
-      record.checksum(),
+      null,
       record.serializedKeySize(),
       record.serializedValueSize(),
       record.key(),
@@ -99,6 +100,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
 
   public void configure(Map<String, ?> configs) {
     configuration = new TransitConfiguration(configs);
+    lifeTimeMillis = configuration.getLongOrDefault(TRANSIT_KEY_TTL_CONFIG, TRANSIT_KEY_TTL_DEFAULT);
     try {
       valueDeserializer = (Deserializer<V>) Class.forName(configuration.getString("interceptor.value.deserializer")).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {

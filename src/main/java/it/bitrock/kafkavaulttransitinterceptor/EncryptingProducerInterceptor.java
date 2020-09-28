@@ -27,6 +27,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   String defaultKey;
   Serializer<V> valueSerializer;
   SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<String, byte[]>();
+  long lifeTimeMillis;
 
   public ProducerRecord onSend(ProducerRecord<K, V> record) {
     if (record.value() == null) return record;
@@ -45,7 +46,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
       RawTransitKey vaultKey = transit.exportKey(encryptionKeyName, TransitKeyType.ENCRYPTION_KEY);
       // decode the base64 encoded string
       decodedKey = Base64.getDecoder().decode(vaultKey.getKeys().get(String.valueOf(encryptionKeyVersion)));
-      map.put(encryptionKeyName, decodedKey, 5 * 60000);
+      map.put(encryptionKeyName, decodedKey, lifeTimeMillis);
     }
 
     // encrypt and decrypt need the same IV.
@@ -95,6 +96,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
 
   public void configure(Map<String, ?> configs) {
     configuration = new TransitConfiguration(configs);
+    lifeTimeMillis = configuration.getLongOrDefault(TRANSIT_KEY_TTL_CONFIG, TRANSIT_KEY_TTL_DEFAULT);
     try {
       valueSerializer = (Serializer) Class.forName(configuration.getString("interceptor.value.serializer")).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {

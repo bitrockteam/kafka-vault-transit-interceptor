@@ -17,6 +17,9 @@ public class TransitConfiguration {
   public static final String TRANSIT_MOUNT_DEFAULT = "transit";
   public static final String TRANSIT_KEY_CONFIG = "vault.transit.key";
   public static final String TRANSIT_KEY_DEFAULT = "default";
+  public static final String TRANSIT_KEY_TTL_CONFIG = "vault.transit.key.ttl";
+  public static final Long TRANSIT_KEY_TTL_DEFAULT = 5L * 60000;
+
 
   final Map<String, ?> configs;
 
@@ -32,6 +35,21 @@ public class TransitConfiguration {
     final Object valueObject = configs.get(configKey);
     if (valueObject instanceof String) {
       value = (String) valueObject;
+    } else {
+      LOGGER.warn("{} of type String is not found in properties", configKey);
+      value = defaultValue;
+    }
+    return value;
+  }
+
+  /**
+   * @return Value as Long. If not found, then null is returned.
+   */
+  Long getLongOrDefault(String configKey, Long defaultValue) {
+    final long value;
+    final Object valueObject = configs.get(configKey);
+    if (valueObject instanceof Long) {
+      value = (Long) valueObject;
     } else {
       LOGGER.warn("{} of type String is not found in properties", configKey);
       value = defaultValue;

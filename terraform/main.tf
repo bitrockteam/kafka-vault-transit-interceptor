@@ -122,7 +122,7 @@ resource "aws_instance" "kafka" {
     inline = [
       "while [ ! -f /home/ubuntu/.finished ] ; do sleep 2 ; done",
       "while sudo -i -u ubuntu docker ps ; ret=$? ; [ $ret -ne 0 ] ; do sleep 2 ; done",
-      "cd /home/ubuntu/kafka-vault-transit-interceptor && echo HOST=$( ip route get 1 | sed -n 's/.*src \\([0-9.]\\+\\).*/\\1/p' ) > .env",
+      "cd /home/ubuntu/kafka-vault-transit-interceptor && echo HOST=${aws_instance.kafka.private_ip} > .env",
       "cd /home/ubuntu/kafka-vault-transit-interceptor && sudo -u ubuntu docker-compose -f docker/docker-compose.yaml up -d zookeeper kafka",
       "sudo -i -u ubuntu docker ps"
     ]
@@ -167,7 +167,7 @@ resource "aws_instance" "vault" {
       "chmod +x /home/ubuntu/kafka-vault-transit-interceptor/docker/vault/docker-entrypoint.sh",
       "cd /home/ubuntu/kafka-vault-transit-interceptor && sudo -u ubuntu docker-compose -f docker/docker-compose.yaml up -d vault",
       "sudo -i -u ubuntu docker ps",
-      "sudo -i -u ubuntu docker exec -e VAULT_TOKEN=myroot docker_vault_1 vault secrets enable transit"
+      "sleep 30 && sudo -i -u ubuntu docker exec -e VAULT_TOKEN=myroot docker_vault_1 vault secrets enable transit"
     ]
   }
 }

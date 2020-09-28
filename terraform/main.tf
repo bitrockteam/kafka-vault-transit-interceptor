@@ -115,7 +115,7 @@ resource "aws_instance" "kafka" {
   }
 
   provisioner "local-exec" {
-    command = "rsync -avzO -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.vault.public_ip}:/home/ubuntu"
+    command = "rsync -avzO -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.kafka.public_ip}:/home/ubuntu"
   }
 
   provisioner "remote-exec" {
@@ -199,7 +199,7 @@ resource "aws_instance" "test_runner" {
   }
 
   provisioner "local-exec" {
-    command = "rsync -avz -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.vault.public_ip}:/home/ubuntu"
+    command = "rsync -avzO -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.test_runner.public_ip}:/home/ubuntu"
   }
 
   provisioner "file" {

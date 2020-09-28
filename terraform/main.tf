@@ -122,7 +122,7 @@ resource "aws_instance" "kafka" {
     inline = [
       "while [ ! -f /home/ubuntu/.finished ] ; do sleep 2 ; done",
       "while sudo -i -u ubuntu docker ps ; ret=$? ; [ $ret -ne 0 ] ; do sleep 2 ; done",
-      "cd /home/ubuntu/kafka-vault-transit-interceptor/ && mvn package",
+      "cd /home/ubuntu/kafka-vault-transit-interceptor && echo HOST=$( ip route get 1 | sed -n 's/.*src \\([0-9.]\\+\\).*/\\1/p' ) > .env",
       "cd /home/ubuntu/kafka-vault-transit-interceptor && sudo -u ubuntu docker-compose -f docker/docker-compose.yaml up -d zookeeper kafka",
       "sudo -i -u ubuntu docker ps"
     ]
@@ -166,7 +166,8 @@ resource "aws_instance" "vault" {
       "while sudo -i -u ubuntu docker ps ; ret=$? ; [ $ret -ne 0 ] ; do sleep 2 ; done",
       "chmod +x /home/ubuntu/kafka-vault-transit-interceptor/docker/vault/docker-entrypoint.sh",
       "cd /home/ubuntu/kafka-vault-transit-interceptor && sudo -u ubuntu docker-compose -f docker/docker-compose.yaml up -d vault",
-      "sudo -i -u ubuntu docker ps"
+      "sudo -i -u ubuntu docker ps",
+      "sudo -i -u ubuntu docker exec -e VAULT_TOKEN=myroot docker_vault_1 vault secrets enable transit"
     ]
   }
 }
@@ -206,6 +207,15 @@ resource "aws_instance" "test_runner" {
     content = data.template_file.perf_test_sh.rendered
     destination = "/home/ubuntu/kafka-vault-transit-interceptor/perf-test-rendered.sh"
   }
+
+  provisioner "remote-exec" {
+    inline = [
+      "cd /home/ubuntu/kafka-vault-transit-interceptor/ && mvn package",
+      "chmod +x /home/ubuntu/kafka-vault-transit-interceptor/perf-test-rendered.sh",
+      "cd /home/ubuntu/kafka-vault-transit-interceptor && ./perf-test-rendered.sh"
+    ]
+  }
+
 }
 
 locals {

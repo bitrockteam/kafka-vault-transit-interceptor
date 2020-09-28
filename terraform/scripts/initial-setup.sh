@@ -31,7 +31,9 @@ sudo apt-get install -y openjdk-8-jdk maven
 
 # Install kafka
 sudo wget https://downloads.apache.org/kafka/2.5.1/kafka_2.12-2.5.1.tgz
-sudo tar xzf kafka_2.12-2.5.1.tgz
-sudo mv kafka_2.12-2.5.1.tgz /usr/local/kafka
+sudo mkdir -p /opt/kafka
+sudo tar -C /opt/kafka -xzf kafka_2.12-2.5.1.tgz --strip-components=1
+for file in $(ls -1 /opt/kafka/bin/*.sh); do sudo cp $file ${file%.sh}; done
+sudo sed -e 's|PATH="\(.*\)"|PATH="/opt/kafka/bin:\1"|g' -i /etc/environment
 
 sudo touch /home/ubuntu/.finished

@@ -210,9 +210,11 @@ resource "aws_instance" "test_runner" {
 
   provisioner "remote-exec" {
     inline = [
-      "cd /home/ubuntu/kafka-vault-transit-interceptor/ && mvn package",
-      "chmod +x /home/ubuntu/kafka-vault-transit-interceptor/perf-test-rendered.sh",
-      "cd /home/ubuntu/kafka-vault-transit-interceptor && ./perf-test-rendered.sh"
+      "while [ ! -f /home/ubuntu/.finished ] ; do sleep 2 ; done",
+      "cd /home/ubuntu/kafka-vault-transit-interceptor",
+      "mvn package",
+      "chmod +x perf-test-rendered.sh",
+      "exec ./perf-test-rendered.sh"
     ]
   }
 

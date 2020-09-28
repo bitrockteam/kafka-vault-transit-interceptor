@@ -108,16 +108,23 @@ resource "aws_instance" "kafka" {
     host = self.public_ip
   }
 
-  provisioner "file" {
-    source = pathexpand(var.base_folder_dir)
-    destination = "/home/ubuntu/"
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'ready'"
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = "rsync -avzO -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.vault.public_ip}:/home/ubuntu"
   }
 
   provisioner "remote-exec" {
     inline = [
       "while [ ! -f /home/ubuntu/.finished ] ; do sleep 2 ; done",
+      "while sudo -i -u ubuntu docker ps ; ret=$? ; [ $ret -ne 0 ] ; do sleep 2 ; done",
       "cd /home/ubuntu/kafka-vault-transit-interceptor/ && mvn package",
-      "cd /home/ubuntu/kafka-vault-transit-interceptor/docker && docker-compose up -d zookeeper kafka"
+      "cd /home/ubuntu/kafka-vault-transit-interceptor && sudo -u ubuntu docker-compose -f docker/docker-compose.yaml up -d zookeeper kafka",
+      "sudo -i -u ubuntu docker ps"
     ]
   }
 }
@@ -143,16 +150,23 @@ resource "aws_instance" "vault" {
     host = self.public_ip
   }
 
-  provisioner "file" {
-    source = pathexpand(var.base_folder_dir)
-    destination = "/home/ubuntu/"
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'ready'"
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = "rsync -avzO -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.vault.public_ip}:/home/ubuntu"
   }
 
   provisioner "remote-exec" {
     inline = [
       "while [ ! -f /home/ubuntu/.finished ] ; do sleep 2 ; done",
+      "while sudo -i -u ubuntu docker ps ; ret=$? ; [ $ret -ne 0 ] ; do sleep 2 ; done",
       "chmod +x /home/ubuntu/kafka-vault-transit-interceptor/docker/vault/docker-entrypoint.sh",
-      "cd /home/ubuntu/kafka-vault-transit-interceptor/docker && docker-compose up -d vault"
+      "cd /home/ubuntu/kafka-vault-transit-interceptor && sudo -u ubuntu docker-compose -f docker/docker-compose.yaml up -d vault",
+      "sudo -i -u ubuntu docker ps"
     ]
   }
 }
@@ -178,9 +192,14 @@ resource "aws_instance" "test_runner" {
     host = self.public_ip
   }
 
-  provisioner "file" {
-    source = pathexpand(var.base_folder_dir)
-    destination = "/home/ubuntu/"
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'ready'"
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = "rsync -avz -e 'ssh -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --filter='dir-merge,- ../.gitignore' --progress ${pathexpand(var.base_folder_dir)} ubuntu@${aws_instance.vault.public_ip}:/home/ubuntu"
   }
 
   provisioner "file" {

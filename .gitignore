@@ -128,8 +128,10 @@ buildNumber.properties
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
-docker/vault/data
-docker/vault/unseal
+docker/vault/data/core
+docker/vault/data/logical
+docker/vault/data/sys
+docker/vault/unseal/sealfile
 results
 .project
 .classpath

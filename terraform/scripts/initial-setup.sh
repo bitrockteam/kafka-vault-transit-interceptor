@@ -19,6 +19,8 @@ sudo add-apt-repository \
    stable"
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+sudo usermod -aG docker ubuntu
+sudo systemctl start docker
 
 # Install docker-compose
 sudo wget -O  /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.25.0/docker-compose-Linux-x86_64
@@ -31,7 +33,5 @@ sudo apt-get install -y openjdk-8-jdk maven
 sudo wget https://downloads.apache.org/kafka/2.5.1/kafka_2.12-2.5.1.tgz
 sudo tar xzf kafka_2.12-2.5.1.tgz
 sudo mv kafka_2.12-2.5.1.tgz /usr/local/kafka
-
-sudo usermod -aG docker ubuntu
 
 sudo touch /home/ubuntu/.finished

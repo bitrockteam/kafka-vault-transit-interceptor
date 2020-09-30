@@ -10,13 +10,15 @@ def plot_kafka_output(directory, kind):
     X = np.empty(0, dtype=float)
     Y = np.empty(0, dtype=float)
     print(TYPE)
-    #grab last 4 characters of the file name:
+
+    # grab last 4 characters of the file name:
     def message_size(x):
       print(x)
-      print(x.split("-")[-1].rsplit( ".", 1 )[ 0 ])
-      return(int(x.split("-")[-1].rsplit( ".", 1 )[ 0 ]))
+      print(x.split("-")[-1].rsplit(".", 1)[0])
+      return int(x.split("-")[-1].rsplit(".", 1)[0])
+
     file_list = glob.iglob(f"{directory}/{kind}-{TYPE}*.txt")
-    for filename in sorted(file_list, key = message_size):
+    for filename in sorted(file_list, key=message_size):
       size = filename.split('-')[-1].split('.')[0]
       numMsg = filename.split('-')[-2]
       plt.title(f"{kind} perf {numMsg} msgs")

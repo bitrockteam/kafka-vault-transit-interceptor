@@ -1,5 +1,8 @@
 package it.bitrock.kafkavaulttransitinterceptor;
 
+import it.bitrock.kafkavaulttransitinterceptor.util.EncryptorAesGcm;
+import it.bitrock.kafkavaulttransitinterceptor.util.SelfExpiringHashMap;
+import it.bitrock.kafkavaulttransitinterceptor.util.SelfExpiringMap;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -27,7 +30,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   String mount;
   String key;
   Deserializer<V> valueDeserializer;
-  SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<String, byte[]>();
+  final SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<>();
   long lifeTimeMillis;
 
 
@@ -38,36 +41,40 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     for (TopicPartition partition : records.partitions()) {
       List<ConsumerRecord<K, V>> decryptedRecordsPartition =
         records.records(partition).stream()
-          .collect(groupingBy(record -> getEncryptionKeyName(record))).values()
+          .collect(groupingBy(this::getEncryptionKeyName)).values()
           .stream().flatMap(recordsPerKey -> processBulkDecrypt(recordsPerKey).stream())
           .collect(Collectors.toList());
 
       decryptedRecordsMap.put(partition, decryptedRecordsPartition);
     }
 
-    return new ConsumerRecords<K, V>(decryptedRecordsMap);
+    return new ConsumerRecords<>(decryptedRecordsMap);
   }
 
   private List<ConsumerRecord<K, V>> processBulkDecrypt(List<ConsumerRecord<K, V>> records) {
     String keyName = getEncryptionKeyName(records.get(0));
     return records.stream().map(
-      record -> doTheMagic(record, keyName)
+      record -> decryptRecord(record, keyName)
     ).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
-  private ConsumerRecord<K, V> doTheMagic(ConsumerRecord<K, V> record, String keyName) {
+  private ConsumerRecord<K, V> decryptRecord(ConsumerRecord<K, V> record, String keyName) {
     byte[] ciphertext = (byte[]) record.value();
     int encryptionVersion = getEncryptionKeyVersion(record);
     String keyCacheKey = keyName.concat("-").concat(String.valueOf(encryptionVersion));
     byte[] decodedKey = map.get(keyCacheKey);
     if (decodedKey == null) {
       VaultTransitKey vaultTransitKey = transit.getKey(keyName);
-      int minDecryptionVersion = vaultTransitKey.getMinDecryptionVersion();
-      if (minDecryptionVersion <= encryptionVersion) {
-        RawTransitKey vaultKey = transit.exportKey(keyName, TransitKeyType.ENCRYPTION_KEY);
-        // decode the base64 encoded string
-        decodedKey = Base64.getDecoder().decode(vaultKey.getKeys().get(String.valueOf(encryptionVersion)));
-        map.put(keyCacheKey, decodedKey, lifeTimeMillis);
+      if (vaultTransitKey != null) {
+        int minDecryptionVersion = vaultTransitKey.getMinDecryptionVersion();
+        if (minDecryptionVersion <= encryptionVersion) {
+          RawTransitKey vaultKey = transit.exportKey(keyName, TransitKeyType.ENCRYPTION_KEY);
+          // decode the base64 encoded string
+          decodedKey = Base64.getDecoder().decode(vaultKey.getKeys().get(String.valueOf(encryptionVersion)));
+          map.put(keyCacheKey, decodedKey, lifeTimeMillis);
+        } else {
+          return null;
+        }
       } else {
         return null;
       }
@@ -76,7 +83,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     // rebuild keyName using SecretKeySpec
     SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
 
-    return new ConsumerRecord<K, V>(record.topic(),
+    return new ConsumerRecord<>(record.topic(),
       record.partition(),
       record.offset(),
       record.timestamp(),

@@ -1,4 +1,4 @@
-package it.bitrock.kafkavaulttransitinterceptor;
+package it.bitrock.kafkavaulttransitinterceptor.util;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -8,7 +8,7 @@ import java.security.SecureRandom;
 
 public class EncryptorAesGcm {
 
-  static final int IV_LENGTH_BYTE = 12;
+  public static final int IV_LENGTH_BYTE = 12;
   private static final String ENCRYPT_ALGO = "AES/GCM/NoPadding";
   private static final int TAG_LENGTH_BIT = 128;
 
@@ -23,8 +23,7 @@ public class EncryptorAesGcm {
 
     Cipher cipher = Cipher.getInstance(ENCRYPT_ALGO);
     cipher.init(Cipher.ENCRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
-    byte[] encryptedText = cipher.doFinal(pText);
-    return encryptedText;
+    return cipher.doFinal(pText);
 
   }
 
@@ -33,11 +32,10 @@ public class EncryptorAesGcm {
 
     byte[] cipherText = encrypt(pText, secret, iv);
 
-    byte[] cipherTextWithIv = ByteBuffer.allocate(iv.length + cipherText.length)
+    return ByteBuffer.allocate(iv.length + cipherText.length)
       .put(iv)
       .put(cipherText)
       .array();
-    return cipherTextWithIv;
 
   }
 
@@ -46,8 +44,7 @@ public class EncryptorAesGcm {
 
     Cipher cipher = Cipher.getInstance(ENCRYPT_ALGO);
     cipher.init(Cipher.DECRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
-    byte[] plainText = cipher.doFinal(cText);
-    return plainText;
+    return cipher.doFinal(cText);
 
   }
 

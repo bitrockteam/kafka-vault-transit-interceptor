@@ -1,4 +1,4 @@
-package it.bitrock.kafkavaulttransitinterceptor;
+package it.bitrock.kafkavaulttransitinterceptor.util;
 
 /*
  * Copyright (c) 2019 Pierantonio Cangianiello
@@ -40,7 +40,7 @@ public interface SelfExpiringMap<K, V> extends Map<K, V> {
    * @param key
    * @return true if the key is found, false otherwise
    */
-  public boolean renewKey(K key);
+  boolean renewKey(K key);
 
   /**
    * Associates the given key to the given value in this map, with the specified life
@@ -51,7 +51,7 @@ public interface SelfExpiringMap<K, V> extends Map<K, V> {
    * @param lifeTimeMillis
    * @return a previously associated object for the given key (if exists).
    */
-  public V put(K key, V value, long lifeTimeMillis);
+  V put(K key, V value, long lifeTimeMillis);
 
 }
 

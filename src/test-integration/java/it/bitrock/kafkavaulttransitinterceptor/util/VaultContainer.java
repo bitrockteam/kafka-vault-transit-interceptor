@@ -72,6 +72,20 @@ public class VaultContainer extends GenericContainer<VaultContainer> implements 
     runCommand("vault", "secrets", "enable", "transit");
   }
 
+
+  public void rotateKey(String key) throws IOException, InterruptedException  {
+    runCommand("vault", "login", rootToken);
+
+    runCommand("vault", "write", "-f", "transit/keys/"+key+"/rotate");
+  }
+
+  public void deleteKey(String key) throws IOException, InterruptedException  {
+    runCommand("vault", "login", rootToken);
+
+    runCommand("vault", "write", "transit/keys/"+key+"/config", "deletion_allowed=true");
+    runCommand("vault", "delete", "transit/keys/"+key);
+  }
+
   public String getAddress() {
     return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(8200));
   }

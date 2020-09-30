@@ -1,5 +1,8 @@
 package it.bitrock.kafkavaulttransitinterceptor;
 
+import it.bitrock.kafkavaulttransitinterceptor.util.EncryptorAesGcm;
+import it.bitrock.kafkavaulttransitinterceptor.util.SelfExpiringHashMap;
+import it.bitrock.kafkavaulttransitinterceptor.util.SelfExpiringMap;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -26,7 +29,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   String mount;
   String defaultKey;
   Serializer<V> valueSerializer;
-  SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<String, byte[]>();
+  final SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<String, byte[]>();
   long lifeTimeMillis;
 
   public ProducerRecord onSend(ProducerRecord<K, V> record) {
@@ -41,8 +44,8 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
       if (vaultTransitKey == null) {
         transit.createKey(encryptionKeyName, VaultTransitKeyCreationRequest.builder().exportable(true).build());
         vaultTransitKey = transit.getKey(encryptionKeyName);
-        encryptionKeyVersion = vaultTransitKey.getLatestVersion();
       }
+      encryptionKeyVersion = vaultTransitKey.getLatestVersion();
       RawTransitKey vaultKey = transit.exportKey(encryptionKeyName, TransitKeyType.ENCRYPTION_KEY);
       // decode the base64 encoded string
       decodedKey = Base64.getDecoder().decode(vaultKey.getKeys().get(String.valueOf(encryptionKeyVersion)));

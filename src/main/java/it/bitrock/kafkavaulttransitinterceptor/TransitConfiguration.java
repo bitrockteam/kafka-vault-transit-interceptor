@@ -3,7 +3,6 @@ package it.bitrock.kafkavaulttransitinterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.AbstractList;
 import java.util.Map;
 
 /**

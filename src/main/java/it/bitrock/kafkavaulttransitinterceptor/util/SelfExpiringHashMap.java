@@ -1,4 +1,4 @@
-package it.bitrock.kafkavaulttransitinterceptor;
+package it.bitrock.kafkavaulttransitinterceptor.util;
 
 /*
  * Copyright (c) 2019 Pierantonio Cangianiello
@@ -25,7 +25,6 @@ package it.bitrock.kafkavaulttransitinterceptor;
  */
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;

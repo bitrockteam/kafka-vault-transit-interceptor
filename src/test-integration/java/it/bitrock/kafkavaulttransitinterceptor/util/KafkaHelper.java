@@ -1,14 +1,15 @@
 package it.bitrock.kafkavaulttransitinterceptor.util;
 
+import it.bitrock.kafkavaulttransitinterceptor.TransitConfiguration;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,7 +17,7 @@ import java.util.stream.Collectors;
 public class KafkaHelper {
 
 
-  public static KafkaProducer<String, Long> longKafkaProducerInterceptor(String bootstrapServers) {
+  public static KafkaProducer<String, Long> longKafkaProducerInterceptor(String bootstrapServers, Long ttl) {
     Properties properties = new Properties();
     properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
@@ -24,6 +25,7 @@ public class KafkaHelper {
     properties.put("interceptor.value.serializer", "org.apache.kafka.common.serialization.LongSerializer");
     properties.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
       "it.bitrock.kafkavaulttransitinterceptor.EncryptingProducerInterceptor");
+    properties.put(TransitConfiguration.TRANSIT_KEY_TTL_CONFIG, ttl);
 
     return new KafkaProducer<>(properties);
   }
@@ -122,4 +124,13 @@ public class KafkaHelper {
     while (count < minRecords && remaining > 0);
     return new ConsumerRecords<>(records);
   }
+
+  private static int fromByteArray(byte[] bytes) {
+    return ByteBuffer.wrap(bytes).getInt();
+  }
+
+  public static <K, V> int getEncryptionKeyVersion(ConsumerRecord<K, V> record) {
+    return fromByteArray(record.headers().headers("x-vault-encryption-key-version").iterator().next().value());
+  }
+
 }

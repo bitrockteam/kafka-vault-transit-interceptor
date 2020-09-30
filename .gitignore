@@ -140,7 +140,7 @@ results
 
 .terraform
 terraform.tfstate
-terraform.tfstate.backup
+terraform.tfstate.*
 key.pem
 
 .DS_Store

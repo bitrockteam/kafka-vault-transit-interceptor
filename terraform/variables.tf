@@ -2,7 +2,7 @@ variable "kafka_instance_type" {
   default = "r5.xlarge"
 }
 variable "kafka_root_volume_size" {
-  default = "30"
+  default = "100"
 }
 variable "vault_instance_type" {
   default = "r5.xlarge"

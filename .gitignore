@@ -144,3 +144,5 @@ terraform.tfstate.*
 key.pem
 
 .DS_Store
+
+results-*.tar.gz

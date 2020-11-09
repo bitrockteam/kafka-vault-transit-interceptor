@@ -218,6 +218,27 @@ resource "aws_instance" "test_runner" {
     ]
   }
 
+  provisioner "remote-exec" {
+    inline = [
+      "cd /home/ubuntu/kafka-vault-transit-interceptor",
+      "tar -zcvf results.tar.gz results"
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = "scp -i ${path.root}/key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${aws_instance.test_runner.public_ip}:/home/ubuntu/kafka-vault-transit-interceptor/results.tar.gz ."
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      rm -rf ../results
+      tar -C ../ -zxvf results.tar.gz
+      cd ../
+      python3 plot_results.py
+      tar -zcvf results-$(date '+%Y-%m-%d').tar.gz results
+    EOT
+  }
+
 }
 
 locals {

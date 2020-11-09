@@ -23,7 +23,7 @@ sudo usermod -aG docker ubuntu
 sudo systemctl start docker
 
 # Install docker-compose
-sudo wget -O  /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.25.0/docker-compose-Linux-x86_64
+sudo wget -O  /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.27.4/docker-compose-Linux-x86_64
 sudo chmod +x /usr/local/bin/docker-compose
 
 # Install java8
@@ -33,7 +33,7 @@ sudo apt-get install -y openjdk-8-jdk maven
 sudo wget https://downloads.apache.org/kafka/2.5.1/kafka_2.12-2.5.1.tgz
 sudo mkdir -p /opt/kafka
 sudo tar -C /opt/kafka -xzf kafka_2.12-2.5.1.tgz --strip-components=1
-for file in $(ls -1 /opt/kafka/bin/*.sh); do sudo cp $file ${file%.sh}; done
+for file in $(ls -1 /opt/kafka/bin/*.sh); do sudo cp "$file" "${file%.sh}"; done
 sudo sed -e 's|PATH="\(.*\)"|PATH="/opt/kafka/bin:\1"|g' -i /etc/environment
 
 sudo touch /home/ubuntu/.finished

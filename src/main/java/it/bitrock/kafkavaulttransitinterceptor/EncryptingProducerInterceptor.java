@@ -26,17 +26,15 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
 
   TransitConfiguration configuration;
   VaultTransitOperations transit;
-  String mount;
   String defaultKey;
   Serializer<V> valueSerializer;
-  final SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<String, byte[]>();
+  final SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<>();
   long lifeTimeMillis;
 
   public ProducerRecord onSend(ProducerRecord<K, V> record) {
     if (record.value() == null) return record;
     String encryptionKeyName = extractKeyOrElse(record.key(), defaultKey);
     int encryptionKeyVersion = 1;
-    // VaultBytesEncryptor encryptor = new VaultBytesEncryptor(this.transit, encryptionKeyName);
 
     byte[] decodedKey = map.get(encryptionKeyName);
     if (decodedKey == null) {
@@ -59,7 +57,6 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
     // rebuild key using SecretKeySpec
     SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
 
-    //byte[] ciphertext = encryptor.encrypt(valueSerializer.serialize(record.topic(), record.value()));
     byte[] ciphertext = null;
     try {
       ciphertext = EncryptorAesGcm.encryptWithPrefixIV(valueSerializer.serialize(record.topic(), record.value()), originalKey, iv);
@@ -98,19 +95,19 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   }
 
   public void configure(Map<String, ?> configs) {
-    configuration = new TransitConfiguration(configs);
-    lifeTimeMillis = configuration.getLongOrDefault(TRANSIT_KEY_TTL_CONFIG, TRANSIT_KEY_TTL_DEFAULT);
+    try {
+      VaultFactory vault = new VaultFactory(configs);
+      transit = vault.transit;
+      configuration = vault.configuration;
+      lifeTimeMillis = configuration.getLongOrDefault(TRANSIT_KEY_TTL_CONFIG, TRANSIT_KEY_TTL_DEFAULT);
+      defaultKey = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
+    } catch (Exception ignored) {
+      LOGGER.error("Failed to create Vault Client");
+    }
     try {
       valueSerializer = (Serializer) Class.forName(configuration.getString("interceptor.value.serializer")).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
       LOGGER.error("Failed to create instance of interceptor.value.serializer", e);
     }
-    try {
-      transit = new VaultFactory(configuration).transit;
-    } catch (Exception ignored) {
-      LOGGER.error("Failed to create Vault Client");
-    }
-    mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
-    defaultKey = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
   }
 }

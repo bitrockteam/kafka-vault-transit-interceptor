@@ -1,9 +1,6 @@
 package it.bitrock.kafkavaulttransitinterceptor.util;
 
 import com.github.dockerjava.api.model.Capability;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,18 +8,18 @@ import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
+import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.lifecycle.TestDescription;
 import org.testcontainers.lifecycle.TestLifecycleAware;
+
+import java.io.IOException;
 
 import static org.junit.Assume.assumeTrue;
 
 public class VaultContainer extends GenericContainer<VaultContainer> implements TestConstants, TestLifecycleAware {
 
+  public static final String DEFAULT_IMAGE_AND_TAG = "vault:1.5.5";
   private static final Logger LOGGER = LoggerFactory.getLogger(VaultContainer.class);
-
-  public static final String DEFAULT_IMAGE_AND_TAG = "vault:1.5.3";
-
   public static String rootToken;
   private String unsealKey;
 
@@ -36,14 +33,12 @@ public class VaultContainer extends GenericContainer<VaultContainer> implements 
       .withClasspathResourceMapping("/config.json", CONTAINER_CONFIG_FILE, BindMode.READ_ONLY)
       .withCreateContainerCmdModifier(command -> command.withCapAdd(Capability.IPC_LOCK))
       .withEnv("VAULT_ADDR", "http://localhost:8200")
+      .withEnv("VAULT_API_ADDR", "http://localhost:8200")
       .withEnv("VAULT_CONFIG_DIR", CONTAINER_CONFIG_FILE)
       .withCommand("server")
       .withLogConsumer(new Slf4jLogConsumer(LOGGER))
       .waitingFor(
-        new HttpWaitStrategy()
-          .forPort(8200)
-          .forPath("/v1/sys/seal-status")
-          .forStatusCode(HttpURLConnection.HTTP_OK)
+        new LogMessageWaitStrategy().withRegEx(".*Vault server started.*")
       );
   }
 
@@ -73,17 +68,17 @@ public class VaultContainer extends GenericContainer<VaultContainer> implements 
   }
 
 
-  public void rotateKey(String key) throws IOException, InterruptedException  {
+  public void rotateKey(String key) throws IOException, InterruptedException {
     runCommand("vault", "login", rootToken);
 
-    runCommand("vault", "write", "-f", "transit/keys/"+key+"/rotate");
+    runCommand("vault", "write", "-f", "transit/keys/" + key + "/rotate");
   }
 
-  public void deleteKey(String key) throws IOException, InterruptedException  {
+  public void deleteKey(String key) throws IOException, InterruptedException {
     runCommand("vault", "login", rootToken);
 
-    runCommand("vault", "write", "transit/keys/"+key+"/config", "deletion_allowed=true");
-    runCommand("vault", "delete", "transit/keys/"+key);
+    runCommand("vault", "write", "transit/keys/" + key + "/config", "deletion_allowed=true");
+    runCommand("vault", "delete", "transit/keys/" + key);
   }
 
   public String getAddress() {

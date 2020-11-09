@@ -13,6 +13,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public class TransitInterceptorTest {
   public static final VaultContainer vault = new VaultContainer();
 
   @ClassRule
-  public static final KafkaContainer kafka = new KafkaContainer("5.5.1");
+  public static final KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka").withTag("5.5.2"));
 
   @ClassRule
   public static final EnvironmentVariables environmentVariables = new EnvironmentVariables();

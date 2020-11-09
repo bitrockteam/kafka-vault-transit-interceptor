@@ -27,8 +27,6 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
 
   TransitConfiguration configuration;
   VaultTransitOperations transit;
-  String mount;
-  String key;
   Deserializer<V> valueDeserializer;
   final SelfExpiringMap<String, byte[]> map = new SelfExpiringHashMap<>();
   long lifeTimeMillis;
@@ -106,20 +104,19 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   }
 
   public void configure(Map<String, ?> configs) {
-    configuration = new TransitConfiguration(configs);
-    lifeTimeMillis = configuration.getLongOrDefault(TRANSIT_KEY_TTL_CONFIG, TRANSIT_KEY_TTL_DEFAULT);
+    try {
+      VaultFactory vault = new VaultFactory(configs);
+      transit = vault.transit;
+      configuration = vault.configuration;
+      lifeTimeMillis = configuration.getLongOrDefault(TRANSIT_KEY_TTL_CONFIG, TRANSIT_KEY_TTL_DEFAULT);
+    } catch (Exception ignored) {
+      LOGGER.error("Failed to create Vault Client");
+    }
     try {
       valueDeserializer = (Deserializer<V>) Class.forName(configuration.getString("interceptor.value.deserializer")).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
       LOGGER.error("Failed to create instance of interceptor.value.deserializer", e);
     }
-    try {
-      transit = new VaultFactory(configuration).transit;
-    } catch (Exception ignored) {
-      LOGGER.error("Failed to create Vault Client");
-    }
-    mount = configuration.getStringOrDefault(TRANSIT_MOUNT_CONFIG, TRANSIT_MOUNT_DEFAULT);
-    key = configuration.getStringOrDefault(TRANSIT_KEY_CONFIG, TRANSIT_KEY_DEFAULT);
   }
 
   private String getEncryptionKeyName(ConsumerRecord<K, V> record) {
@@ -130,7 +127,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
     return fromByteArray(record.headers().headers("x-vault-encryption-key-version").iterator().next().value());
   }
 
-  int fromByteArray(byte[] bytes) {
+  private int fromByteArray(byte[] bytes) {
     return ByteBuffer.wrap(bytes).getInt();
   }
 }

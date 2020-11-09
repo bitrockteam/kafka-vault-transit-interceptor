@@ -5,10 +5,10 @@ import numpy as np
 
 
 def plot_kafka_output(directory, kind):
-  numMsg = ""
+  num_msg = ""
   for TYPE in ["baseline", "interceptor"]:
-    X = np.empty(0, dtype=float)
-    Y = np.empty(0, dtype=float)
+    array_x = np.empty(0, dtype=float)
+    array_y = np.empty(0, dtype=float)
     print(TYPE)
 
     # grab last 4 characters of the file name:
@@ -20,10 +20,10 @@ def plot_kafka_output(directory, kind):
     file_list = glob.iglob(f"{directory}/{kind}-{TYPE}*.txt")
     for filename in sorted(file_list, key=message_size):
       size = filename.split('-')[-1].split('.')[0]
-      numMsg = filename.split('-')[-2]
-      plt.title(f"{kind} perf {numMsg} msgs")
+      num_msg = filename.split('-')[-2]
+      plt.title(f"{kind} perf {num_msg} msgs")
       plt.xlabel("Message Size [byte]")
-      X = np.append(X, size)
+      array_x = np.append(array_x, size)
       print(filename)
       with open(filename, 'r') as f:
         lines = f.read().splitlines()
@@ -35,13 +35,13 @@ def plot_kafka_output(directory, kind):
         else:
           throughput = last_line.split(',')[3]
           plt.ylabel("MB/sec")
-        Y = np.append(Y, round(float(throughput), 2))
-    print(X)
-    print(Y)
-    plt.scatter(X, Y, label=f"{TYPE}")
+        array_y = np.append(array_y, round(float(throughput), 2))
+    print(array_x)
+    print(array_y)
+    plt.scatter(array_x, array_y, label=f"{TYPE}")
 
   plt.legend()
-  plt.savefig(f"{directory}/{kind}-{numMsg}.png")
+  plt.savefig(f"{directory}/{kind}-{num_msg}.png")
   plt.clf()
 
 

@@ -50,7 +50,7 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
   /**
    * Holds the map keys using the given life time for expiration.
    */
-  private final DelayQueue<ExpiringKey> delayQueue = new DelayQueue<ExpiringKey>();
+  private final DelayQueue<ExpiringKey<K>> delayQueue = new DelayQueue<>();
 
   /**
    * The default max life time in milliseconds.
@@ -58,26 +58,26 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
   private final long maxLifeTimeMillis;
 
   public SelfExpiringHashMap() {
-    internalMap = new ConcurrentHashMap<K, V>();
-    expiringKeys = new WeakHashMap<K, ExpiringKey<K>>();
+    internalMap = new ConcurrentHashMap<>();
+    expiringKeys = new WeakHashMap<>();
     this.maxLifeTimeMillis = Long.MAX_VALUE;
   }
 
   public SelfExpiringHashMap(long defaultMaxLifeTimeMillis) {
-    internalMap = new ConcurrentHashMap<K, V>();
-    expiringKeys = new WeakHashMap<K, ExpiringKey<K>>();
+    internalMap = new ConcurrentHashMap<>();
+    expiringKeys = new WeakHashMap<>();
     this.maxLifeTimeMillis = defaultMaxLifeTimeMillis;
   }
 
   public SelfExpiringHashMap(long defaultMaxLifeTimeMillis, int initialCapacity) {
-    internalMap = new ConcurrentHashMap<K, V>(initialCapacity);
-    expiringKeys = new WeakHashMap<K, ExpiringKey<K>>(initialCapacity);
+    internalMap = new ConcurrentHashMap<>(initialCapacity);
+    expiringKeys = new WeakHashMap<>(initialCapacity);
     this.maxLifeTimeMillis = defaultMaxLifeTimeMillis;
   }
 
   public SelfExpiringHashMap(long defaultMaxLifeTimeMillis, int initialCapacity, float loadFactor) {
-    internalMap = new ConcurrentHashMap<K, V>(initialCapacity, loadFactor);
-    expiringKeys = new WeakHashMap<K, ExpiringKey<K>>(initialCapacity, loadFactor);
+    internalMap = new ConcurrentHashMap<>(initialCapacity, loadFactor);
+    expiringKeys = new WeakHashMap<>(initialCapacity, loadFactor);
     this.maxLifeTimeMillis = defaultMaxLifeTimeMillis;
   }
 
@@ -105,7 +105,7 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
   @Override
   public boolean containsKey(Object key) {
     cleanup();
-    return internalMap.containsKey((K) key);
+    return internalMap.containsKey(key);
   }
 
   /**
@@ -114,14 +114,14 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
   @Override
   public boolean containsValue(Object value) {
     cleanup();
-    return internalMap.containsValue((V) value);
+    return internalMap.containsValue(value);
   }
 
   @Override
   public V get(Object key) {
     cleanup();
     renewKey((K) key);
-    return internalMap.get((K) key);
+    return internalMap.get(key);
   }
 
   /**
@@ -138,11 +138,11 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
   @Override
   public V put(K key, V value, long lifeTimeMillis) {
     cleanup();
-    ExpiringKey delayedKey = new ExpiringKey(key, lifeTimeMillis);
-    ExpiringKey oldKey = expiringKeys.put((K) key, delayedKey);
+    ExpiringKey<K> delayedKey = new ExpiringKey<K>(key, lifeTimeMillis);
+    ExpiringKey<K> oldKey = expiringKeys.put(key, delayedKey);
     if(oldKey != null) {
       expireKey(oldKey);
-      expiringKeys.put((K) key, delayedKey);
+      expiringKeys.put(key, delayedKey);
     }
     delayQueue.offer(delayedKey);
     return internalMap.put(key, value);
@@ -153,8 +153,8 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
    */
   @Override
   public V remove(Object key) {
-    V removedValue = internalMap.remove((K) key);
-    expireKey(expiringKeys.remove((K) key));
+    V removedValue = internalMap.remove(key);
+    expireKey(expiringKeys.remove(key));
     return removedValue;
   }
 
@@ -171,7 +171,7 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
    */
   @Override
   public boolean renewKey(K key) {
-    ExpiringKey<K> delayedKey = expiringKeys.get((K) key);
+    ExpiringKey<K> delayedKey = expiringKeys.get(key);
     if (delayedKey != null) {
       delayedKey.renew();
       return true;
@@ -229,7 +229,7 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
     }
   }
 
-  private class ExpiringKey<K> implements Delayed {
+  private static class ExpiringKey<K> implements Delayed {
 
     private long startTime = System.currentTimeMillis();
     private final long maxLifeTimeMillis;
@@ -256,10 +256,7 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
         return false;
       }
       final ExpiringKey<K> other = (ExpiringKey<K>) obj;
-      if (this.key != other.key && (this.key == null || !this.key.equals(other.key))) {
-        return false;
-      }
-      return true;
+      return this.key == other.key || (this.key != null && this.key.equals(other.key));
     }
 
     /**
@@ -297,7 +294,7 @@ public class SelfExpiringHashMap<K, V> implements SelfExpiringMap<K, V> {
      */
     @Override
     public int compareTo(Delayed that) {
-      return Long.compare(this.getDelayMillis(), ((ExpiringKey) that).getDelayMillis());
+      return Long.compare(this.getDelayMillis(), ((ExpiringKey<K>) that).getDelayMillis());
     }
   }
 }

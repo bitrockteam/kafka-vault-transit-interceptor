@@ -18,7 +18,7 @@ TEST_RUN=$((1 + RANDOM % 10))
 rm results/*.txt
 mkdir -p results
 
-for size in ${SIZE_IN_BYTES[@]}; do
+for size in "${SIZE_IN_BYTES[@]}"; do
     echo "Baseline Producer Perf"
     kafka-producer-perf-test --topic baseline-topic-$TEST_RUN-$size \
                             --record-size $size \

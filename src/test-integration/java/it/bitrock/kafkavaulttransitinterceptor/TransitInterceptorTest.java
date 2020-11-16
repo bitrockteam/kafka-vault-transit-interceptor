@@ -45,7 +45,8 @@ public class TransitInterceptorTest {
   @Test
   public void testStringFlow() {
     final String topic = "topic-string-key-string-value";
-    final ProducerRecord<String, String> record = new ProducerRecord<>(topic, UUID.randomUUID().toString(), "plaintext-data");
+    final String key = UUID.randomUUID().toString();
+    final ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, "plaintext-data");
     KafkaProducer<String, String> producer = KafkaHelper.stringKafkaProducerInterceptor(kafka.getBootstrapServers());
 
     try {
@@ -75,6 +76,7 @@ public class TransitInterceptorTest {
     assertEquals(1, records.count());
     for (ConsumerRecord<String, String> consumedRecord: records) {
       assertEquals("plaintext-data", consumedRecord.value());
+      assertEquals(key, KafkaHelper.getEncryptionKeyName(consumedRecord));
     }
     consumer.close();
 

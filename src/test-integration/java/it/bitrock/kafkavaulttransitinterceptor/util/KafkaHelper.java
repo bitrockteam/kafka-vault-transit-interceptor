@@ -133,4 +133,7 @@ public class KafkaHelper {
     return fromByteArray(record.headers().headers("x-vault-encryption-key-version").iterator().next().value());
   }
 
+  public static <K, V> String getEncryptionKeyName(ConsumerRecord<K, V> record) {
+    return new String(record.headers().headers("x-vault-encryption-key-name").iterator().next().value());
+  }
 }

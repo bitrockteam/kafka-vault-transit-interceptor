@@ -87,7 +87,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
     if (key instanceof String) {
       return (String) key;
     } else if (key instanceof byte[]) {
-      return new String((byte[])key, StandardCharsets.UTF_8);
+      return (new String((byte[])key, StandardCharsets.UTF_8)).trim();
     } else return defaultKey;
   }
 

@@ -57,6 +57,7 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   }
 
   private ConsumerRecord<K, V> decryptRecord(ConsumerRecord<K, V> record, String keyName) {
+    if(record.value() == null) return null;
     byte[] ciphertext = (byte[]) record.value();
     int encryptionVersion = getEncryptionKeyVersion(record);
     String keyCacheKey = keyName.concat("-").concat(String.valueOf(encryptionVersion));

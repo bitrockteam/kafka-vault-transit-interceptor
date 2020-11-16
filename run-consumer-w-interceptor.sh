@@ -10,5 +10,9 @@ CLASSPATH="target/kafka-vault-transit-interceptor-1.0-SNAPSHOT-jar-with-dependen
   --topic "$TOPIC" \
   --bootstrap-server localhost:9092 \
   --consumer-property interceptor.value.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer \
-  --consumer-property interceptor.classes=it.bitrock.kafkavaulttransitinterceptor.DecryptingConsumerInterceptor
-
+  --consumer-property interceptor.classes=it.bitrock.kafkavaulttransitinterceptor.DecryptingConsumerInterceptor \
+  --formatter it.bitrock.kafkavaulttransitinterceptor.HeaderMessageFormat \
+  --property print.key=true \
+  --property print.value=true \
+  --property key.separator=" | " \
+  "$@"

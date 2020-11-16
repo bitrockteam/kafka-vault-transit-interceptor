@@ -17,6 +17,7 @@ import org.springframework.vault.support.VaultTransitKeyCreationRequest;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
@@ -83,6 +84,8 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
   private String extractKeyOrElse(K key, String defaultKey) {
     if (key instanceof String) {
       return (String) key;
+    } else if (key instanceof byte[]) {
+      return (new String((byte[])key, StandardCharsets.UTF_8)).trim();
     } else return defaultKey;
   }
 

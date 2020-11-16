@@ -6,6 +6,7 @@ import it.bitrock.kafkavaulttransitinterceptor.util.SelfExpiringMap;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.CorruptRecordException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.vault.core.VaultTransitOperations;
@@ -58,11 +59,12 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
     // rebuild key using SecretKeySpec
     SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
 
-    byte[] ciphertext = null;
+    byte[] ciphertext;
     try {
       ciphertext = EncryptorAesGcm.encryptWithPrefixIV(valueSerializer.serialize(record.topic(), record.value()), originalKey, iv);
     } catch (Exception e) {
       LOGGER.error("Failed to encrypt");
+      throw new CorruptRecordException("Failed to encrypt", e);
     }
     Headers headers = record.headers();
     headers.add("x-vault-encryption-key-name", encryptionKeyName.getBytes());

@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.springframework.vault.core.VaultTransitOperations;
 import org.springframework.vault.support.RawTransitKey;
@@ -57,7 +58,13 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   }
 
   private ConsumerRecord<K, V> decryptRecord(ConsumerRecord<K, V> record, String keyName) {
-    if(record.value() == null) return null;
+    if(record.value() == null) {
+      LOGGER.warn("skipping null value");
+      return null;
+    }
+    if(Objects.equals(keyName, "")){
+      return record;
+    }
     byte[] ciphertext = (byte[]) record.value();
     int encryptionVersion = getEncryptionKeyVersion(record);
     String keyCacheKey = keyName.concat("-").concat(String.valueOf(encryptionVersion));
@@ -121,7 +128,12 @@ public class DecryptingConsumerInterceptor<K, V> implements ConsumerInterceptor<
   }
 
   private String getEncryptionKeyName(ConsumerRecord<K, V> record) {
-    return new String(record.headers().headers("x-vault-encryption-key-name").iterator().next().value());
+    Iterator<Header> h = record.headers().headers("x-vault-encryption-key-name").iterator();
+    if(h.hasNext()){
+      return new String(h.next().value());
+    } else {
+      return "";
+    }
   }
 
   private int getEncryptionKeyVersion(ConsumerRecord<K, V> record) {

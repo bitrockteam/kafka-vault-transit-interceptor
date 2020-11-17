@@ -10,10 +10,7 @@ import org.apache.kafka.common.errors.CorruptRecordException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.vault.core.VaultTransitOperations;
-import org.springframework.vault.support.RawTransitKey;
-import org.springframework.vault.support.TransitKeyType;
-import org.springframework.vault.support.VaultTransitKey;
-import org.springframework.vault.support.VaultTransitKeyCreationRequest;
+import org.springframework.vault.support.*;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -43,6 +40,7 @@ public class EncryptingProducerInterceptor<K, V> implements ProducerInterceptor<
       VaultTransitKey vaultTransitKey = transit.getKey(encryptionKeyName);
       if (vaultTransitKey == null) {
         transit.createKey(encryptionKeyName, VaultTransitKeyCreationRequest.builder().exportable(true).build());
+        transit.configureKey(encryptionKeyName, VaultTransitKeyConfiguration.builder().deletionAllowed(true).build());
         vaultTransitKey = transit.getKey(encryptionKeyName);
       }
       encryptionKeyVersion = vaultTransitKey.getLatestVersion();
